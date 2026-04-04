@@ -1,0 +1,16 @@
+config ZMK_BISTABLE_BEHAVIOR
+    bool "Bistable Behavior"
+    depends on SETTINGS
+    default y
+
+if ZMK_BISTABLE_BEHAVIOR
+
+config ZMK_BISTABLE_BEHAVIOR_MAX_HELD
+    int "Maximum simultaneously held bistable keys"
+    default 8
+    range 1 32
+
+endif
+
+rsource "behaviors/Kconfig"
+rsource "shell/Kconfig"

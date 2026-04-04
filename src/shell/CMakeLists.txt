@@ -1,0 +1,1 @@
+target_sources_ifdef(CONFIG_ZMK_BISTABLE_BEHAVIOR_SHELL app PRIVATE bistable_shell.c)

@@ -1,0 +1,5 @@
+description: Set or toggle the global bistable slot (ZBS_SLOT_0, ZBS_SLOT_1, ZBS_TOG)
+
+compatible: "zmk,behavior-bistable-toggle"
+
+include: one_param.yaml

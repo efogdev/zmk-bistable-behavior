@@ -1,0 +1,9 @@
+config ZMK_BEHAVIOR_BISTABLE
+    bool "Bistable behavior"
+    depends on ZMK_BISTABLE_BEHAVIOR
+    default y
+
+config ZMK_BEHAVIOR_BISTABLE_TOGGLE
+    bool "Bistable toggle behavior"
+    depends on ZMK_BISTABLE_BEHAVIOR
+    default y

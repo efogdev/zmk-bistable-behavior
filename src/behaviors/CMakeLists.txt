@@ -1,0 +1,2 @@
+target_sources_ifdef(CONFIG_ZMK_BEHAVIOR_BISTABLE app PRIVATE behavior_bistable.c)
+target_sources_ifdef(CONFIG_ZMK_BEHAVIOR_BISTABLE_TOGGLE app PRIVATE behavior_bistable_toggle.c)

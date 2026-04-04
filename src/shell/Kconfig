@@ -1,0 +1,8 @@
+if SHELL
+
+config ZMK_BISTABLE_BEHAVIOR_SHELL
+    bool "Bistable behavior shell commands"
+    depends on ZMK_BISTABLE_BEHAVIOR
+    default y
+
+endif

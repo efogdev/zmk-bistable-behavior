@@ -1,0 +1,9 @@
+/ {
+	behaviors {
+		bst_tog: bst_tog {
+			compatible = "zmk,behavior-bistable-toggle";
+			#binding-cells = <1>;
+			display-name = "Toggle bistable behaviors";
+		};
+	};
+};

@@ -1,0 +1,10 @@
+description: Bistable behavior - executes one of two bindings based on the current global slot
+
+compatible: "zmk,behavior-bistable"
+
+include: zero_param.yaml
+
+properties:
+  bindings:
+    type: phandle-array
+    required: true
