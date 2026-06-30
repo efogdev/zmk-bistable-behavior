@@ -1,0 +1,1 @@
+target_sources_ifdef(CONFIG_ZMK_INPUT_PROCESSOR_BISTABLE_SCALER app PRIVATE input_processor_bistable_scaler.c)

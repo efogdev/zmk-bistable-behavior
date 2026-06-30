@@ -13,4 +13,5 @@ config ZMK_BISTABLE_BEHAVIOR_MAX_HELD
 endif
 
 rsource "behaviors/Kconfig"
+rsource "pointing/Kconfig"
 rsource "shell/Kconfig"

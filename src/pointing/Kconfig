@@ -1,0 +1,12 @@
+config ZMK_INPUT_PROCESSOR_BISTABLE_SCALER
+    bool "Bistable two-slot scaler input processor"
+    depends on ZMK_BISTABLE_BEHAVIOR
+    default y
+
+if ZMK_INPUT_PROCESSOR_BISTABLE_SCALER
+
+config ZMK_INPUT_PROCESSOR_BISTABLE_SCALER_ZRC_POLL_MS
+    int "ZRC cache refresh interval, msec"
+    default 500
+
+endif
