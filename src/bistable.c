@@ -1,4 +1,5 @@
 #include <zephyr/kernel.h>
+#include <zephyr/init.h>
 #include <zephyr/settings/settings.h>
 #include <zephyr/logging/log.h>
 
@@ -7,6 +8,12 @@
 #if IS_ENABLED(CONFIG_ZMK_ADAPTIVE_FEEDBACK)
 #include <zmk_adaptive_feedback/adaptive_feedback.h>
 ZAF_CUSTOM_EVENT_DEFINE(zbs_slot_changed, "bistable-toggled");
+#endif
+
+#if IS_ENABLED(CONFIG_ZMK_RUNTIME_CONFIG)
+#include <zmk_runtime_config/runtime_config.h>
+#else
+#define ZRC_GET(key, default_val) (default_val)
 #endif
 
 LOG_MODULE_REGISTER(zmk_bistable_behavior, CONFIG_ZMK_LOG_LEVEL);
@@ -58,3 +65,12 @@ static int zbs_settings_load_cb(const char *name, const size_t len, const settin
 }
 
 SETTINGS_STATIC_HANDLER_DEFINE(zbs_settings, "bistable", NULL, zbs_settings_load_cb, NULL, NULL);
+
+#if IS_ENABLED(CONFIG_ZMK_RUNTIME_CONFIG)
+static int zbs_init(void) {
+    zrc_register(ZBS_DEFAULT_SLOT_KEY, CONFIG_ZMK_BISTABLE_BEHAVIOR_DEFAULT_SLOT, 0, 1);
+    return 0;
+}
+
+SYS_INIT(zbs_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
+#endif

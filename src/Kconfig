@@ -10,6 +10,11 @@ config ZMK_BISTABLE_BEHAVIOR_MAX_HELD
     default 8
     range 1 32
 
+config ZMK_BISTABLE_BEHAVIOR_DEFAULT_SLOT
+    int "Default bistable slot"
+    default 0
+    range 0 1
+
 endif
 
 rsource "behaviors/Kconfig"
