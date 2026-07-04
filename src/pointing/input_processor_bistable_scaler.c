@@ -18,7 +18,8 @@ struct bscaler_config {
     uint8_t type;
     uint32_t slot0;
     uint32_t slot1;
-    uint32_t default_coef;
+    uint32_t default_s0;
+    uint32_t default_s1;
     const char *key_s0_mult;
     const char *key_s0_div;
     const char *key_s1_mult;
@@ -118,8 +119,7 @@ static int bscaler_handle_event(const struct device *dev, struct input_event *ev
         mult = (uint32_t)(slot ? data->c_s1_mult : data->c_s0_mult);
         div = (uint32_t)(slot ? data->c_s1_div : data->c_s0_div);
 #else
-        const uint32_t other = slot ? cfg->slot0 : cfg->slot1;
-        const uint32_t fallback = other ? other : cfg->default_coef;
+        const uint32_t fallback = slot ? cfg->default_s1 : cfg->default_s0;
         mult = fallback >> 16;
         div = fallback & 0xFFFF;
 #endif
@@ -136,25 +136,32 @@ static struct zmk_input_processor_driver_api bscaler_api = {
     .handle_event = bscaler_handle_event,
 };
 
-#define BSCALER_DEFAULT(n, other_slot)                                                             \
-    (DT_INST_PROP(n, other_slot) ? DT_INST_PROP(n, other_slot) : DT_INST_PROP_OR(n, default_coef, 0))
+#define BSCALER_S0_DEFAULT(n)                                                                      \
+    (DT_INST_PROP_OR(n, default_coef_slot0, 0) ? DT_INST_PROP_OR(n, default_coef_slot0, 0)         \
+         : (DT_INST_PROP(n, slot1) ? DT_INST_PROP(n, slot1) : DT_INST_PROP_OR(n, default_coef, 0)))
+#define BSCALER_S1_DEFAULT(n)                                                                      \
+    (DT_INST_PROP_OR(n, default_coef_slot1, 0) ? DT_INST_PROP_OR(n, default_coef_slot1, 0)         \
+         : (DT_INST_PROP(n, slot0) ? DT_INST_PROP(n, slot0) : DT_INST_PROP_OR(n, default_coef, 0)))
 
 #define BSCALER_INST(n)                                                                            \
     BUILD_ASSERT(DT_INST_PROP(n, slot0) != 0 || DT_INST_PROP(n, slot1) != 0 ||                     \
-                     DT_INST_PROP_OR(n, default_coef, 0) != 0,                                    \
-                 "bistable-scaler: set at least one of slot0/slot1, or default-coef when both "    \
-                 "slots are runtime");                                                             \
+                     DT_INST_PROP_OR(n, default_coef, 0) != 0 ||                                   \
+                     DT_INST_PROP_OR(n, default_coef_slot0, 0) != 0 ||                             \
+                     DT_INST_PROP_OR(n, default_coef_slot1, 0) != 0,                               \
+                 "bistable-scaler: set at least one of slot0/slot1, or a default coefficient when " \
+                 "both slots are runtime");                                                        \
     static struct bscaler_data data_##n = {                                                        \
-        .c_s0_mult = BSCALER_DEFAULT(n, slot1) >> 16,                                              \
-        .c_s0_div = BSCALER_DEFAULT(n, slot1) & 0xFFFF,                                             \
-        .c_s1_mult = BSCALER_DEFAULT(n, slot0) >> 16,                                              \
-        .c_s1_div = BSCALER_DEFAULT(n, slot0) & 0xFFFF,                                             \
+        .c_s0_mult = BSCALER_S0_DEFAULT(n) >> 16,                                                  \
+        .c_s0_div = BSCALER_S0_DEFAULT(n) & 0xFFFF,                                                 \
+        .c_s1_mult = BSCALER_S1_DEFAULT(n) >> 16,                                                  \
+        .c_s1_div = BSCALER_S1_DEFAULT(n) & 0xFFFF,                                                 \
     };                                                                                             \
     static const struct bscaler_config config_##n = {                                              \
         .type = DT_INST_PROP_OR(n, type, INPUT_EV_REL),                                            \
         .slot0 = DT_INST_PROP(n, slot0),                                                           \
         .slot1 = DT_INST_PROP(n, slot1),                                                           \
-        .default_coef = DT_INST_PROP_OR(n, default_coef, 0),                                     \
+        .default_s0 = BSCALER_S0_DEFAULT(n),                                                       \
+        .default_s1 = BSCALER_S1_DEFAULT(n),                                                       \
         .key_s0_mult = DT_INST_PROP(n, zrc_prefix) "/s0_mult",                                     \
         .key_s0_div = DT_INST_PROP(n, zrc_prefix) "/s0_div",                                       \
         .key_s1_mult = DT_INST_PROP(n, zrc_prefix) "/s1_mult",                                     \
@@ -170,12 +177,12 @@ DT_INST_FOREACH_STATUS_OKAY(BSCALER_INST)
 #if IS_ENABLED(CONFIG_ZMK_RUNTIME_CONFIG)
 #define BSCALER_REG(n)                                                                             \
     if (DT_INST_PROP(n, slot0) == 0) {                                                             \
-        const uint32_t d = BSCALER_DEFAULT(n, slot1);                                              \
+        const uint32_t d = BSCALER_S0_DEFAULT(n);                                                  \
         zrc_register(DT_INST_PROP(n, zrc_prefix) "/s0_mult", d >> 16, 1, 255);                   \
         zrc_register(DT_INST_PROP(n, zrc_prefix) "/s0_div", d & 0xFFFF, 1, 255);                 \
     }                                                                                              \
     if (DT_INST_PROP(n, slot1) == 0) {                                                             \
-        const uint32_t d = BSCALER_DEFAULT(n, slot0);                                              \
+        const uint32_t d = BSCALER_S1_DEFAULT(n);                                                  \
         zrc_register(DT_INST_PROP(n, zrc_prefix) "/s1_mult", d >> 16, 1, 255);                   \
         zrc_register(DT_INST_PROP(n, zrc_prefix) "/s1_div", d & 0xFFFF, 1, 255);                 \
     }

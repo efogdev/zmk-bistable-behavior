@@ -19,6 +19,10 @@ properties:
     required: true
   default-coef:
     type: int
+  default-coef-slot0:
+    type: int
+  default-coef-slot1:
+    type: int
   zrc-prefix:
     type: string
     required: true
