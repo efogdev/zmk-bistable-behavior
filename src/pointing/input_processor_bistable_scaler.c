@@ -20,10 +20,6 @@ struct bscaler_config {
     uint32_t slot1;
     uint32_t default_s0;
     uint32_t default_s1;
-    const char *key_s0_mult;
-    const char *key_s0_div;
-    const char *key_s1_mult;
-    const char *key_s1_div;
     size_t codes_len;
     uint16_t codes[];
 };
@@ -33,38 +29,7 @@ struct bscaler_data {
     int32_t c_s0_div;
     int32_t c_s1_mult;
     int32_t c_s1_div;
-    uint32_t last_refresh;
-    bool initialized;
 };
-
-#if IS_ENABLED(CONFIG_ZMK_RUNTIME_CONFIG)
-static void zrc_cache_refresh_if_due(const struct device *dev, const uint32_t now) {
-    const struct bscaler_config *cfg = dev->config;
-    struct bscaler_data *data = dev->data;
-
-    if (likely(data->initialized) &&
-        (now - data->last_refresh) < CONFIG_ZMK_INPUT_PROCESSOR_BISTABLE_SCALER_ZRC_POLL_MS) {
-        return;
-    }
-
-    if (cfg->slot0 == 0) {
-        data->c_s0_mult = zrc_get(cfg->key_s0_mult);
-        data->c_s0_div = zrc_get(cfg->key_s0_div);
-    }
-    if (cfg->slot1 == 0) {
-        data->c_s1_mult = zrc_get(cfg->key_s1_mult);
-        data->c_s1_div = zrc_get(cfg->key_s1_div);
-    }
-
-    data->last_refresh = now;
-    data->initialized = true;
-}
-#else
-static inline void zrc_cache_refresh_if_due(const struct device *dev, const uint32_t now) {
-    ARG_UNUSED(dev);
-    ARG_UNUSED(now);
-}
-#endif
 
 static int scale_val(struct input_event *event, const uint32_t mul, const uint32_t div,
                      struct zmk_input_processor_state *state) {
@@ -114,7 +79,6 @@ static int bscaler_handle_event(const struct device *dev, struct input_event *ev
         div = packed & 0xFFFF;
     } else {
 #if IS_ENABLED(CONFIG_ZMK_RUNTIME_CONFIG)
-        zrc_cache_refresh_if_due(dev, (uint32_t)k_uptime_get());
         const struct bscaler_data *data = dev->data;
         mult = (uint32_t)(slot ? data->c_s1_mult : data->c_s0_mult);
         div = (uint32_t)(slot ? data->c_s1_div : data->c_s0_div);
@@ -162,10 +126,6 @@ static struct zmk_input_processor_driver_api bscaler_api = {
         .slot1 = DT_INST_PROP(n, slot1),                                                           \
         .default_s0 = BSCALER_S0_DEFAULT(n),                                                       \
         .default_s1 = BSCALER_S1_DEFAULT(n),                                                       \
-        .key_s0_mult = DT_INST_PROP(n, zrc_prefix) "/s0_mult",                                     \
-        .key_s0_div = DT_INST_PROP(n, zrc_prefix) "/s0_div",                                       \
-        .key_s1_mult = DT_INST_PROP(n, zrc_prefix) "/s1_mult",                                     \
-        .key_s1_div = DT_INST_PROP(n, zrc_prefix) "/s1_div",                                       \
         .codes_len = DT_INST_PROP_LEN(n, codes),                                                   \
         .codes = DT_INST_PROP(n, codes),                                                           \
     };                                                                                             \
@@ -175,6 +135,16 @@ static struct zmk_input_processor_driver_api bscaler_api = {
 DT_INST_FOREACH_STATUS_OKAY(BSCALER_INST)
 
 #if IS_ENABLED(CONFIG_ZMK_RUNTIME_CONFIG)
+#define BSCALER_CACHE_TBL(n)                                                                       \
+    static const struct zrc_cache_entry zrc_cache_tbl_##n[] = {                                    \
+        { DT_INST_PROP(n, zrc_prefix) "/s0_mult", &data_##n.c_s0_mult, sizeof(int32_t) },          \
+        { DT_INST_PROP(n, zrc_prefix) "/s0_div",  &data_##n.c_s0_div,  sizeof(int32_t) },          \
+        { DT_INST_PROP(n, zrc_prefix) "/s1_mult", &data_##n.c_s1_mult, sizeof(int32_t) },          \
+        { DT_INST_PROP(n, zrc_prefix) "/s1_div",  &data_##n.c_s1_div,  sizeof(int32_t) },          \
+    };
+
+DT_INST_FOREACH_STATUS_OKAY(BSCALER_CACHE_TBL)
+
 #define BSCALER_REG(n)                                                                             \
     if (DT_INST_PROP(n, slot0) == 0) {                                                             \
         const uint32_t d = BSCALER_S0_DEFAULT(n);                                                  \
@@ -185,7 +155,8 @@ DT_INST_FOREACH_STATUS_OKAY(BSCALER_INST)
         const uint32_t d = BSCALER_S1_DEFAULT(n);                                                  \
         zrc_register(DT_INST_PROP(n, zrc_prefix) "/s1_mult", d >> 16, 1, 255);                   \
         zrc_register(DT_INST_PROP(n, zrc_prefix) "/s1_div", d & 0xFFFF, 1, 255);                 \
-    }
+    }                                                                                              \
+    zrc_cache_register(zrc_cache_tbl_##n, ARRAY_SIZE(zrc_cache_tbl_##n));
 
 static int bscaler_register_runtime_params(void) {
     DT_INST_FOREACH_STATUS_OKAY(BSCALER_REG)
